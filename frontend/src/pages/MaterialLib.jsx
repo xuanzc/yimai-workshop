@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { materialApi } from '../services/material';
-import { MATERIAL_TYPES } from '../utils/constants';
+import { MATERIAL_TYPES, MATERIAL_IMAGES } from '../utils/constants';
 import { formatDate, truncate } from '../utils/helpers';
 import { Plus, Pencil, Trash2, Sparkles } from 'lucide-react';
 
@@ -73,17 +73,22 @@ export default function MaterialLib() {
       ) : (
         <div className="grid grid-cols-3 gap-4">
           {items.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-medium text-gray-800">{item.title}</h3>
-                <span className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded">{typeLabel(item.material_type)}</span>
+            <div key={item.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition group">
+              <div className="relative h-32 overflow-hidden">
+                <img src={MATERIAL_IMAGES[item.material_type]} alt={typeLabel(item.material_type)} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                <div className="absolute top-2 right-2">
+                  <span className="text-xs bg-white/90 text-primary-600 px-2 py-0.5 rounded backdrop-blur-sm font-medium">{typeLabel(item.material_type)}</span>
+                </div>
               </div>
-              <p className="text-sm text-gray-500 mb-3 line-clamp-3">{truncate(item.content, 120)}</p>
-              <div className="text-xs text-gray-400 mb-3">{formatDate(item.created_at)}</div>
-              <div className="flex gap-2">
-                <button onClick={() => navigate('/create')} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs bg-primary-50 text-primary-600 rounded hover:bg-primary-100"><Sparkles size={12} /> 创作</button>
-                <button onClick={() => handleEdit(item)} className="p-1.5 text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
-                <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+              <div className="p-4">
+                <h3 className="font-medium text-gray-800 mb-1.5">{item.title}</h3>
+                <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">{truncate(item.content, 80)}</p>
+                <div className="text-xs text-gray-400 mb-3">{formatDate(item.created_at)}</div>
+                <div className="flex gap-2">
+                  <button onClick={() => navigate('/create')} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs bg-primary-50 text-primary-600 rounded hover:bg-primary-100 transition"><Sparkles size={12} /> 创作</button>
+                  <button onClick={() => handleEdit(item)} className="p-1.5 text-gray-400 hover:text-primary-600 transition"><Pencil size={14} /></button>
+                  <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition"><Trash2 size={14} /></button>
+                </div>
               </div>
             </div>
           ))}

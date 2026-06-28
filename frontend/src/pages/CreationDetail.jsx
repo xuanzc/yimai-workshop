@@ -1,13 +1,12 @@
 // frontend/src/pages/CreationDetail.jsx
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { creationApi } from '../services/creation';
-import { AUDIENCES } from '../utils/constants';
+import { AUDIENCES, AUDIENCE_LABELS, SCENARIO_BANNERS, SCENARIO_LABELS, SCENARIOS, CONTENT_ITEM_ICONS } from '../utils/constants';
 import { copyToClipboard, downloadMarkdown } from '../utils/helpers';
 import MarkdownView from '../components/CreationResult/MarkdownView';
 import CraftGraph from '../components/CraftGraph/CraftGraph';
 import { Copy, Download, Loader2, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export default function CreationDetail() {
   const { id } = useParams();
@@ -54,44 +53,86 @@ export default function CreationDetail() {
   if (!result) return <div className="p-8 text-gray-500">创作不存在</div>;
 
   return (
-    <div className="p-8">
+    <div className="p-6 max-w-4xl mx-auto">
       {toast && <div className="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg z-50" onClick={() => setToast('')}>{toast}</div>}
 
       <button onClick={() => navigate('/history')} className="flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-4">
         <ArrowLeft size={16} /> 返回列表
       </button>
 
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-800">{result.title}</h1>
-        <div className="flex gap-2">
-          <button onClick={handleCopy} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50"><Copy size={14} /> 复制</button>
-          <button onClick={handleExport} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50"><Download size={14} /> 导出</button>
+      {/* 场景横幅图 */}
+      <div className="relative rounded-2xl overflow-hidden mb-5 shadow-md">
+        <img src={SCENARIO_BANNERS[result.scenario]} alt={SCENARIO_LABELS[result.scenario]} className="w-full h-48 object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs bg-primary-500 text-white px-2 py-0.5 rounded-full font-medium">
+              {SCENARIOS.find((s) => s.value === result.scenario)?.icon} {SCENARIO_LABELS[result.scenario]}
+            </span>
+            <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full backdrop-blur-sm">
+              {AUDIENCE_LABELS[result.audience]}版
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold text-white drop-shadow-lg">{result.title}</h1>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-6">
-        <span className="text-sm text-gray-500 py-1.5">受众切换：</span>
+      {/* 工具栏 */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            创作完成
+          </span>
+          <span>·</span>
+          <span>{result.content_items.length} 个内容模块</span>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={handleCopy} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"><Copy size={14} /> 复制</button>
+          <button onClick={handleExport} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"><Download size={14} /> 导出</button>
+        </div>
+      </div>
+
+      {/* 受众切换 */}
+      <div className="flex items-center gap-2 mb-5 bg-white rounded-xl p-3 shadow-sm">
+        <span className="text-sm text-gray-500 mr-1">受众切换：</span>
         {AUDIENCES.map((a) => (
-          <button key={a.value} onClick={() => handleSwitchAudience(a.value)} disabled={switching} className={`px-3 py-1.5 text-sm rounded-lg disabled:opacity-50 ${result.audience === a.value ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300'}`}>
+          <button key={a.value} onClick={() => handleSwitchAudience(a.value)} disabled={switching} className={`px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 ${result.audience === a.value ? 'bg-primary-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             {switching ? <Loader2 className="animate-spin inline" size={14} /> : a.label}
           </button>
         ))}
       </div>
 
-      <div className="flex gap-1 mb-4 border-b border-gray-200">
+      {/* 内容标签页 */}
+      <div className="flex gap-1 mb-4 bg-white rounded-xl p-1.5 shadow-sm overflow-x-auto">
         {result.content_items.map((item, i) => (
-          <button key={i} onClick={() => setActiveTab(i)} className={`px-4 py-2 text-sm border-b-2 ${activeTab === i ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500'}`}>{item.title}</button>
+          <button key={i} onClick={() => setActiveTab(i)} className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg whitespace-nowrap transition ${activeTab === i ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <span>{CONTENT_ITEM_ICONS[item.item_type] || '📄'}</span>
+            {item.title}
+          </button>
         ))}
       </div>
 
+      {/* 内容展示 */}
       {result.content_items[activeTab] && (
-        <div className="bg-white rounded-xl p-6 mb-6 shadow-sm">
+        <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-50">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+            <span className="text-2xl">{CONTENT_ITEM_ICONS[result.content_items[activeTab].item_type] || '📄'}</span>
+            <h3 className="text-lg font-bold text-gray-800">{result.content_items[activeTab].title}</h3>
+          </div>
           <MarkdownView content={result.content_items[activeTab].content} />
         </div>
       )}
 
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="font-bold text-gray-800 mb-4">工艺流程图谱</h3>
+      {/* 工艺图谱 */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-50">
+        <div className="flex items-center gap-2 mb-5">
+          <span className="text-2xl">🔧</span>
+          <div>
+            <h3 className="font-bold text-gray-800">工艺流程图谱</h3>
+            <p className="text-xs text-gray-400">从素材中提取的工艺步骤可视化</p>
+          </div>
+        </div>
         <CraftGraph nodes={result.craft_graph.nodes} edges={result.craft_graph.edges} />
       </div>
     </div>

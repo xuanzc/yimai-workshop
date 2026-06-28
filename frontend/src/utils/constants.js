@@ -34,6 +34,50 @@ export const AUDIENCE_LABELS = {
   expert: '专家',
 };
 
+// 场景横幅图片
+const BASE = import.meta.env.BASE_URL || '/';
+export const SCENARIO_BANNERS = {
+  classroom: `${BASE}images/banner-classroom.jpg`,
+  exhibition: `${BASE}images/banner-exhibition.jpg`,
+  video: `${BASE}images/banner-video.jpg`,
+  study_tour: `${BASE}images/banner-study-tour.jpg`,
+};
+
+// 素材类型配图
+export const MATERIAL_IMAGES = {
+  ancient_book: `${BASE}images/mat-ancient-book.jpg`,
+  craft_text: `${BASE}images/mat-craft-text.jpg`,
+  oral_record: `${BASE}images/mat-oral-record.jpg`,
+  craft_keyword: `${BASE}images/mat-craft-keyword.jpg`,
+};
+
+// 工艺图谱节点类型样式
+export const CRAFT_NODE_STYLES = {
+  material: { label: '原料', icon: '🟦', color: 'from-blue-400 to-blue-500', text: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-300' },
+  action: { label: '工序', icon: '🔶', color: 'from-amber-400 to-orange-500', text: 'text-orange-600', bg: 'bg-amber-50', border: 'border-amber-300' },
+  product: { label: '成品', icon: '🟩', color: 'from-green-400 to-emerald-500', text: 'text-green-600', bg: 'bg-green-50', border: 'border-green-300' },
+};
+
+// 内容条目图标
+export const CONTENT_ITEM_ICONS = {
+  lesson_plan: '📋',
+  knowledge_card: '🎴',
+  interactive_qa: '❓',
+  homework: '📝',
+  exhibit_text: '🖼️',
+  display_card: '🏷️',
+  audio_guide: '🎧',
+  visitor_guide: '🚶',
+  storyboard: '🎬',
+  voiceover: '🎤',
+  subtitle: '💬',
+  cover_copy: '📰',
+  handbook: '📖',
+  activity_design: '🎨',
+  task_card: '✅',
+  safety_notice: '⚠️',
+};
+
 // 示例素材（供创作页一键填充）
 export const SAMPLE_MATERIAL_PRESETS = [
   {

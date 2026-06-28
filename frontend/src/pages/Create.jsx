@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { creationApi } from '../services/creation';
 import { materialApi } from '../services/material';
-import { MATERIAL_TYPES, SCENARIOS, AUDIENCES, AUDIENCE_LABELS, SAMPLE_MATERIAL_PRESETS } from '../utils/constants';
+import { MATERIAL_TYPES, SCENARIOS, AUDIENCES, AUDIENCE_LABELS, SAMPLE_MATERIAL_PRESETS, SCENARIO_BANNERS, SCENARIO_LABELS, CONTENT_ITEM_ICONS, MATERIAL_IMAGES } from '../utils/constants';
 import { copyToClipboard, downloadMarkdown } from '../utils/helpers';
 import MarkdownView from '../components/CreationResult/MarkdownView';
 import CraftGraph from '../components/CraftGraph/CraftGraph';
@@ -177,8 +177,15 @@ export default function Create() {
         {!result && !loading && (
           <div className="flex items-center justify-center h-full text-gray-400">
             <div className="text-center">
-              <Sparkles size={48} className="mx-auto mb-4 opacity-30" />
-              <p>选择素材和场景后，点击"生成内容"开始创作</p>
+              <div className="text-6xl mb-4 opacity-20">📜</div>
+              <p className="text-lg font-medium text-gray-400 mb-1">AI 创作工作台</p>
+              <p className="text-sm text-gray-400">选择素材和场景后，点击"生成内容"开始创作</p>
+              <div className="flex items-center justify-center gap-4 mt-6 text-xs text-gray-300">
+                <span className="flex items-center gap-1">📚 教案</span>
+                <span className="flex items-center gap-1">🏛️ 展板</span>
+                <span className="flex items-center gap-1">🎬 分镜</span>
+                <span className="flex items-center gap-1">🎒 研学</span>
+              </div>
             </div>
           </div>
         )}
@@ -186,41 +193,73 @@ export default function Create() {
         {loading && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <Loader2 className="animate-spin mx-auto mb-4 text-primary-500" size={40} />
-              <p className="text-gray-500">AI 正在创作中，请稍候...</p>
+              <div className="relative inline-block mb-4">
+                <div className="w-16 h-16 rounded-full border-4 border-primary-100"></div>
+                <div className="absolute top-0 left-0 w-16 h-16 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl">
+                  {SCENARIOS.find((s) => s.value === scenario)?.icon}
+                </div>
+              </div>
+              <p className="text-gray-500 font-medium">AI 正在创作中...</p>
+              <p className="text-xs text-gray-400 mt-1">解析素材 · 生成内容 · 构建图谱</p>
             </div>
           </div>
         )}
 
         {result && !loading && (
-          <div>
+          <div className="max-w-4xl mx-auto">
+            {/* 场景横幅图 */}
+            <div className="relative rounded-2xl overflow-hidden mb-5 shadow-md">
+              <img src={SCENARIO_BANNERS[result.scenario]} alt={SCENARIO_LABELS[result.scenario]} className="w-full h-40 object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs bg-primary-500 text-white px-2 py-0.5 rounded-full font-medium">
+                    {SCENARIOS.find((s) => s.value === result.scenario)?.icon} {SCENARIO_LABELS[result.scenario]}
+                  </span>
+                  <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full backdrop-blur-sm">
+                    {AUDIENCE_LABELS[result.audience]}版
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold text-white drop-shadow-lg">{result.title}</h2>
+              </div>
+            </div>
+
             {/* 工具栏 */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-800">{result.title}</h2>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  创作完成
+                </span>
+                <span>·</span>
+                <span>{result.content_items.length} 个内容模块</span>
+              </div>
               <div className="flex gap-2">
-                <button onClick={handleCopy} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                <button onClick={handleCopy} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
                   <Copy size={14} /> 复制
                 </button>
-                <button onClick={handleExport} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                <button onClick={handleExport} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
                   <Download size={14} /> 导出
                 </button>
               </div>
             </div>
 
             {/* 受众切换 */}
-            <div className="flex gap-2 mb-4">
-              <span className="text-sm text-gray-500 py-1.5">受众切换：</span>
+            <div className="flex items-center gap-2 mb-5 bg-white rounded-xl p-3 shadow-sm">
+              <span className="text-sm text-gray-500 mr-1">受众切换：</span>
               {AUDIENCES.map((a) => (
-                <button key={a.value} onClick={() => handleSwitchAudience(a.value)} className={`px-3 py-1.5 text-sm rounded-lg ${result.audience === a.value ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                <button key={a.value} onClick={() => handleSwitchAudience(a.value)} className={`px-3 py-1.5 text-sm rounded-lg transition ${result.audience === a.value ? 'bg-primary-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                   {a.label}
                 </button>
               ))}
             </div>
 
             {/* 内容标签页 */}
-            <div className="flex gap-1 mb-4 border-b border-gray-200">
+            <div className="flex gap-1 mb-4 bg-white rounded-xl p-1.5 shadow-sm overflow-x-auto">
               {result.content_items.map((item, i) => (
-                <button key={i} onClick={() => setActiveTab(i)} className={`px-4 py-2 text-sm border-b-2 ${activeTab === i ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                <button key={i} onClick={() => setActiveTab(i)} className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg whitespace-nowrap transition ${activeTab === i ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+                  <span>{CONTENT_ITEM_ICONS[item.item_type] || '📄'}</span>
                   {item.title}
                 </button>
               ))}
@@ -228,14 +267,24 @@ export default function Create() {
 
             {/* 内容展示 */}
             {result.content_items[activeTab] && (
-              <div className="bg-white rounded-xl p-6 mb-6 shadow-sm">
+              <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-50">
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                  <span className="text-2xl">{CONTENT_ITEM_ICONS[result.content_items[activeTab].item_type] || '📄'}</span>
+                  <h3 className="text-lg font-bold text-gray-800">{result.content_items[activeTab].title}</h3>
+                </div>
                 <MarkdownView content={result.content_items[activeTab].content} />
               </div>
             )}
 
             {/* 工艺图谱 */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-gray-800 mb-4">工艺流程图谱</h3>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-50">
+              <div className="flex items-center gap-2 mb-5">
+                <span className="text-2xl">🔧</span>
+                <div>
+                  <h3 className="font-bold text-gray-800">工艺流程图谱</h3>
+                  <p className="text-xs text-gray-400">从素材中提取的工艺步骤可视化</p>
+                </div>
+              </div>
               <CraftGraph nodes={result.craft_graph.nodes} edges={result.craft_graph.edges} />
             </div>
           </div>
