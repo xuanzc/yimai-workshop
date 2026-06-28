@@ -188,21 +188,84 @@ class MockProvider(AIProvider):
         return templates.get(scenario, templates["classroom"])
 
     def _mock_craft_graph(self, prompt: str) -> str:
-        graph = {
-            "nodes": [
-                {"node_id": "step1", "label": "选材备料", "node_type": "material", "description": "精选优质原材料，确保品质"},
-                {"node_id": "step2", "label": "初步加工", "node_type": "action", "description": "对原料进行初步处理与修整"},
-                {"node_id": "step3", "label": "核心制作", "node_type": "action", "description": "按照传统技法进行核心工艺"},
-                {"node_id": "step4", "label": "精细修整", "node_type": "action", "description": "对半成品进行精细修整与完善"},
-                {"node_id": "step5", "label": "装饰美化", "node_type": "action", "description": "添加装饰元素，提升艺术性"},
-                {"node_id": "step6", "label": "成品检验", "node_type": "product", "description": "质量检验与成品包装"},
-            ],
-            "edges": [
-                {"source_node": "step1", "target_node": "step2", "label": "经过"},
-                {"source_node": "step2", "target_node": "step3", "label": "进入"},
-                {"source_node": "step3", "target_node": "step4", "label": "转入"},
-                {"source_node": "step4", "target_node": "step5", "label": "接着"},
-                {"source_node": "step5", "target_node": "step6", "label": "产出"},
-            ],
-        }
+        # 根据素材内容关键词判断类型，返回差异化工艺图谱
+        prompt_lower = prompt.lower()
+
+        if "皮影" in prompt or "影戏" in prompt:
+            graph = {
+                "nodes": [
+                    {"node_id": "step1", "label": "选皮处理", "node_type": "material", "description": "选用上等驴皮或牛皮，泡水、刮薄、晾干"},
+                    {"node_id": "step2", "label": "画稿过稿", "node_type": "action", "description": "设计人物造型，将图样描画到皮面上"},
+                    {"node_id": "step3", "label": "雕镂刻制", "node_type": "action", "description": "三十余把刻刀精雕，最小刻刀细于绣花针"},
+                    {"node_id": "step4", "label": "上色固色", "node_type": "action", "description": "矿物颜料红绿黑白黄上色，数十年不褪"},
+                    {"node_id": "step5", "label": "缀结装置", "node_type": "action", "description": "关节处缀结竹签铁丝，连接操纵杆"},
+                    {"node_id": "step6", "label": "排练演出", "node_type": "product", "description": "签手操纵、前声演唱，幕布灯光下表演"},
+                ],
+                "edges": [
+                    {"source_node": "step1", "target_node": "step2", "label": "经处理"},
+                    {"source_node": "step2", "target_node": "step3", "label": "入雕刻"},
+                    {"source_node": "step3", "target_node": "step4", "label": "施色彩"},
+                    {"source_node": "step4", "target_node": "step5", "label": "缀装置"},
+                    {"source_node": "step5", "target_node": "step6", "label": "上舞台"},
+                ],
+            }
+        elif "瓷" in prompt or "坯" in prompt or "釉" in prompt or "窑" in prompt:
+            graph = {
+                "nodes": [
+                    {"node_id": "step1", "label": "采矿淘洗", "node_type": "material", "description": "取高岭土与瓷石，经粉碎、淘洗、沉淀"},
+                    {"node_id": "step2", "label": "练泥制不", "node_type": "action", "description": "揉练使泥料柔韧均匀，陈腐以增可塑性"},
+                    {"node_id": "step3", "label": "拉坯印坯", "node_type": "action", "description": "辘轳车盘拉坯，或模具印压泥片合模"},
+                    {"node_id": "step4", "label": "利坯修足", "node_type": "action", "description": "铁刀旋削坯体内外，厚薄均匀表面光洁"},
+                    {"node_id": "step5", "label": "画坯施釉", "node_type": "action", "description": "青花料描绘纹饰，浸釉或吹釉均匀覆盖"},
+                    {"node_id": "step6", "label": "装窑烧窑", "node_type": "action", "description": "匣钵装坯，松柴升温至1300度，二十余小时"},
+                    {"node_id": "step7", "label": "开窑选瓷", "node_type": "product", "description": "冷却后拣选合格成品，白如玉明如镜"},
+                ],
+                "edges": [
+                    {"source_node": "step1", "target_node": "step2", "label": "经练制"},
+                    {"source_node": "step2", "target_node": "step3", "label": "入成型"},
+                    {"source_node": "step3", "target_node": "step4", "label": "待修整"},
+                    {"source_node": "step4", "target_node": "step5", "label": "施装饰"},
+                    {"source_node": "step5", "target_node": "step6", "label": "入窑烧"},
+                    {"source_node": "step6", "target_node": "step7", "label": "出成品"},
+                ],
+            }
+        elif "绣" in prompt or "针" in prompt or "丝" in prompt:
+            graph = {
+                "nodes": [
+                    {"node_id": "step1", "label": "选材备料", "node_type": "material", "description": "选取蚕丝线、棉布底料、矿物染料等原材料"},
+                    {"node_id": "step2", "label": "勾稿上绷", "node_type": "action", "description": "设计图案勾稿，将底料上绷固定"},
+                    {"node_id": "step3", "label": "核心工艺", "node_type": "action", "description": "按传统技法进行刺绣或印染等核心制作"},
+                    {"node_id": "step4", "label": "精细修整", "node_type": "action", "description": "劈丝配色、分水勾线，精细打磨细节"},
+                    {"node_id": "step5", "label": "落绷装裱", "node_type": "action", "description": "完成制作后落绷，装裱成装饰画或团扇"},
+                    {"node_id": "step6", "label": "成品检验", "node_type": "product", "description": "质量检验，光感丝理达标即为成品"},
+                ],
+                "edges": [
+                    {"source_node": "step1", "target_node": "step2", "label": "经准备"},
+                    {"source_node": "step2", "target_node": "step3", "label": "入制作"},
+                    {"source_node": "step3", "target_node": "step4", "label": "转修整"},
+                    {"source_node": "step4", "target_node": "step5", "label": "入装裱"},
+                    {"source_node": "step5", "target_node": "step6", "label": "出成品"},
+                ],
+            }
+        else:
+            # 古籍/通用陶埏类
+            graph = {
+                "nodes": [
+                    {"node_id": "step1", "label": "取土选料", "node_type": "material", "description": "掘地取无沙粘土，百里内必产合用土色"},
+                    {"node_id": "step2", "label": "练泥陈腐", "node_type": "action", "description": "调践熟泥，踩踏使柔韧均匀，渍水经宿"},
+                    {"node_id": "step3", "label": "拉坯成型", "node_type": "action", "description": "以圆桶为模，铁线弦弓割泥，周包圆桶"},
+                    {"node_id": "step4", "label": "修坯晾干", "node_type": "action", "description": "待稍干脱模而出，自然裂分，修削成型"},
+                    {"node_id": "step5", "label": "装窑烧制", "node_type": "action", "description": "堆积窑中燃薪举火，一至二昼夜视量定熄"},
+                    {"node_id": "step6", "label": "浇水转釉", "node_type": "action", "description": "停火后浇水使表面呈现光泽，与造砖同法"},
+                    {"node_id": "step7", "label": "开窑取器", "node_type": "product", "description": "冷却后开窑取出，成品瓦器可用于建筑"},
+                ],
+                "edges": [
+                    {"source_node": "step1", "target_node": "step2", "label": "经练制"},
+                    {"source_node": "step2", "target_node": "step3", "label": "入成型"},
+                    {"source_node": "step3", "target_node": "step4", "label": "待干燥"},
+                    {"source_node": "step4", "target_node": "step5", "label": "入窑烧"},
+                    {"source_node": "step5", "target_node": "step6", "label": "转釉色"},
+                    {"source_node": "step6", "target_node": "step7", "label": "出成品"},
+                ],
+            }
         return json.dumps(graph, ensure_ascii=False)

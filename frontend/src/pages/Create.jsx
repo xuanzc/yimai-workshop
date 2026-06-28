@@ -74,14 +74,28 @@ export default function Create() {
 
   const handleCopy = () => {
     if (!result) return;
-    const text = result.content_items.map((i) => `## ${i.title}\n\n${i.content}`).join('\n\n');
+    let text = result.content_items.map((i) => `## ${i.title}\n\n${i.content}`).join('\n\n');
+    if (result.craft_graph && result.craft_graph.nodes.length > 0) {
+      text += '\n\n## 工艺流程图谱\n\n';
+      text += result.craft_graph.nodes.map((n, i) => `${i + 1}. ${n.label} — ${n.description || ''}`).join('\n');
+    }
     copyToClipboard(text);
     setToast('已复制到剪贴板');
   };
 
   const handleExport = () => {
     if (!result) return;
-    const text = `# ${result.title}\n\n${result.content_items.map((i) => `## ${i.title}\n\n${i.content}`).join('\n\n')}`;
+    let text = `# ${result.title}\n\n${result.content_items.map((i) => `## ${i.title}\n\n${i.content}`).join('\n\n')}`;
+    if (result.craft_graph && result.craft_graph.nodes.length > 0) {
+      text += '\n\n## 工艺流程图谱\n\n';
+      text += result.craft_graph.nodes.map((n, i) => `${i + 1}. ${n.label} — ${n.description || ''}`).join('\n');
+      text += '\n\n**流转关系：**\n';
+      text += result.craft_graph.edges.map((e) => {
+        const s = result.craft_graph.nodes.find((n) => n.node_id === e.source_node);
+        const t = result.craft_graph.nodes.find((n) => n.node_id === e.target_node);
+        return `- ${s?.label || e.source_node} —${e.label || '→'}→ ${t?.label || e.target_node}`;
+      }).join('\n');
+    }
     downloadMarkdown(`${result.title}.md`, text);
     setToast('已导出 Markdown');
   };

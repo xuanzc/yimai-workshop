@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { creationApi } from '../services/creation';
-import { AUDIENCES, AUDIENCE_LABELS, SCENARIO_BANNERS, SCENARIO_LABELS, SCENARIOS, CONTENT_ITEM_ICONS } from '../utils/constants';
+import { AUDIENCES, AUDIENCE_LABELS, SCENARIO_BANNERS, SCENARIO_LABELS, SCENARIOS, CONTENT_ITEM_ICONS, MATERIAL_TYPES, MATERIAL_IMAGES } from '../utils/constants';
+import { materialApi } from '../services/material';
 import { copyToClipboard, downloadMarkdown } from '../utils/helpers';
 import MarkdownView from '../components/CreationResult/MarkdownView';
 import CraftGraph from '../components/CraftGraph/CraftGraph';
@@ -12,6 +13,7 @@ export default function CreationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [result, setResult] = useState(null);
+  const [material, setMaterial] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const [switching, setSwitching] = useState(false);
@@ -20,6 +22,12 @@ export default function CreationDetail() {
   useEffect(() => {
     creationApi.get(id).then((res) => {
       setResult(res.data);
+      // 获取关联的原始素材
+      if (res.data.material_id) {
+        materialApi.get(res.data.material_id).then((matRes) => {
+          setMaterial(matRes.data);
+        }).catch(() => {});
+      }
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -44,7 +52,22 @@ export default function CreationDetail() {
   };
 
   const handleExport = () => {
-    const text = `# ${result.title}\n\n${result.content_items.map((i) => `## ${i.title}\n\n${i.content}`).join('\n\n')}`;
+    let text = `# ${result.title}\n\n`;
+    if (material) {
+      const typeLabel = MATERIAL_TYPES.find((t) => t.value === material.material_type)?.label || material.material_type;
+      text += `## 原始素材\n\n**标题：** ${material.title}\n**类型：** ${typeLabel}\n\n${material.content}\n\n`;
+    }
+    text += result.content_items.map((i) => `## ${i.title}\n\n${i.content}`).join('\n\n');
+    if (result.craft_graph && result.craft_graph.nodes.length > 0) {
+      text += '\n\n## 工艺流程图谱\n\n';
+      text += result.craft_graph.nodes.map((n, i) => `${i + 1}. **${n.label}** (${n.node_type}) — ${n.description || ''}`).join('\n');
+      text += '\n\n**流转关系：**\n';
+      text += result.craft_graph.edges.map((e) => {
+        const s = result.craft_graph.nodes.find((n) => n.node_id === e.source_node);
+        const t = result.craft_graph.nodes.find((n) => n.node_id === e.target_node);
+        return `- ${s?.label || e.source_node} —${e.label || '→'}→ ${t?.label || e.target_node}`;
+      }).join('\n');
+    }
     downloadMarkdown(`${result.title}.md`, text);
     setToast('已导出');
   };
@@ -76,6 +99,26 @@ export default function CreationDetail() {
           <h1 className="text-2xl font-bold text-white drop-shadow-lg">{result.title}</h1>
         </div>
       </div>
+
+      {/* 原始素材展示区 */}
+      {material && (
+        <div className="bg-white rounded-xl p-5 mb-4 shadow-sm border border-gray-50">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">{MATERIAL_TYPES.find((t) => t.value === material.material_type)?.icon || '📄'}</span>
+            <h3 className="text-sm font-bold text-gray-700">原始素材</h3>
+            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{MATERIAL_TYPES.find((t) => t.value === material.material_type)?.label || material.material_type}</span>
+          </div>
+          <div className="flex gap-4">
+            {MATERIAL_IMAGES[material.material_type] && (
+              <img src={MATERIAL_IMAGES[material.material_type]} alt={material.title} className="w-24 h-24 rounded-lg object-cover flex-shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 mb-1">{material.title}</p>
+              <p className="text-xs text-gray-500 line-clamp-4 leading-relaxed">{material.content}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 工具栏 */}
       <div className="flex items-center justify-between mb-4">
