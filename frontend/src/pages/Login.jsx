@@ -7,10 +7,15 @@ import { ensureDemoData, getDemoCredentials, isMockMode } from '../services/mock
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
-  const [account, setAccount] = useState('');
-  const [password, setPassword] = useState('');
+  // Mock 模式下默认填充演示账号，真实后端模式留空
+  const demoCred = isMockMode() ? getDemoCredentials() : { account: '', password: '' };
+  const [account, setAccount] = useState(demoCred.account);
+  const [password, setPassword] = useState(demoCred.password);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 确保 demo 数据已初始化
+  if (isMockMode()) ensureDemoData();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
