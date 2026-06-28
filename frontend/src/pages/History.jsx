@@ -33,13 +33,13 @@ export default function History() {
   const totalPages = Math.ceil(total / 10);
 
   return (
-    <div className="p-8">
+    <div className="p-6 md:p-8">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">历史记录</h1>
 
-      <div className="flex gap-2 mb-6">
-        <button onClick={() => setScenario('')} className={`px-4 py-1.5 text-sm rounded-lg ${!scenario ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300'}`}>全部</button>
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <button onClick={() => setScenario('')} className={`px-4 py-1.5 text-sm rounded-lg whitespace-nowrap ${!scenario ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300'}`}>全部</button>
         {SCENARIOS.map((s) => (
-          <button key={s.value} onClick={() => setScenario(s.value)} className={`px-4 py-1.5 text-sm rounded-lg ${scenario === s.value ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300'}`}>{s.label}</button>
+          <button key={s.value} onClick={() => setScenario(s.value)} className={`px-4 py-1.5 text-sm rounded-lg whitespace-nowrap ${scenario === s.value ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300'}`}>{s.label}</button>
         ))}
       </div>
 

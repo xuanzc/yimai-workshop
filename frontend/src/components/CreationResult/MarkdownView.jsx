@@ -5,9 +5,7 @@ export default function MarkdownView({ content }) {
     if (!text) return null;
     const lines = text.split('\n');
     const elements = [];
-    let inList = false;
     let listItems = [];
-    let currentSection = null;
 
     const flushList = (key) => {
       if (listItems.length > 0) {
@@ -18,7 +16,6 @@ export default function MarkdownView({ content }) {
         );
         listItems = [];
       }
-      inList = false;
     };
 
     lines.forEach((line, i) => {
@@ -79,7 +76,6 @@ export default function MarkdownView({ content }) {
           </div>
         );
       } else if (li) {
-        inList = true;
         listItems.push(
           <div key={i} className="flex items-start gap-2.5">
             <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-primary-400 mt-2"></span>
@@ -87,7 +83,6 @@ export default function MarkdownView({ content }) {
           </div>
         );
       } else if (numberedLi) {
-        inList = true;
         const numMatch = line.match(/^(\d+)[.、]\s+(.*)/);
         listItems.push(
           <div key={i} className="flex items-start gap-2.5">

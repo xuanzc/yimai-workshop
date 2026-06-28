@@ -1,14 +1,16 @@
 // frontend/src/pages/Create.jsx
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { creationApi } from '../services/creation';
 import { materialApi } from '../services/material';
-import { MATERIAL_TYPES, SCENARIOS, AUDIENCES, AUDIENCE_LABELS, SAMPLE_MATERIAL_PRESETS, SCENARIO_BANNERS, SCENARIO_LABELS, CONTENT_ITEM_ICONS, MATERIAL_IMAGES } from '../utils/constants';
+import { MATERIAL_TYPES, SCENARIOS, AUDIENCES, AUDIENCE_LABELS, SAMPLE_MATERIAL_PRESETS, SCENARIO_BANNERS, SCENARIO_LABELS, CONTENT_ITEM_ICONS } from '../utils/constants';
 import { copyToClipboard, downloadMarkdown } from '../utils/helpers';
 import MarkdownView from '../components/CreationResult/MarkdownView';
 import CraftGraph from '../components/CraftGraph/CraftGraph';
 import { Sparkles, Copy, Download, Loader2, Wand2 } from 'lucide-react';
 
 export default function Create() {
+  const [searchParams] = useSearchParams();
   const [materials, setMaterials] = useState([]);
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [inputMode, setInputMode] = useState('new'); // 'new' | 'existing'
@@ -23,7 +25,15 @@ export default function Create() {
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    materialApi.list({ page: 1, page_size: 100 }).then((res) => setMaterials(res.data.items));
+    materialApi.list({ page: 1, page_size: 100 }).then((res) => {
+      setMaterials(res.data.items);
+      // 如果 URL 携带 materialId，自动切换到"从素材库选"模式并选中
+      const materialId = searchParams.get('materialId');
+      if (materialId) {
+        setInputMode('existing');
+        setSelectedMaterialId(materialId);
+      }
+    });
   }, []);
 
   const handleGenerate = async () => {
@@ -49,7 +59,7 @@ export default function Create() {
   };
 
   const handleSwitchAudience = async (newAudience) => {
-    if (!result) return;
+    if (!result || loading || result.audience === newAudience) return;
     setLoading(true);
     try {
       const res = await creationApi.switchAudience(result.id, newAudience);
@@ -77,9 +87,9 @@ export default function Create() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-col lg:flex-row h-full">
       {/* 左侧输入区 */}
-      <div className="w-2/5 border-r border-gray-200 p-6 overflow-auto bg-white">
+      <div className="w-full lg:w-2/5 lg:border-r border-gray-200 p-5 md:p-6 overflow-auto bg-white lg:h-full">
         <h1 className="text-xl font-bold text-gray-800 mb-6">开始创作</h1>
 
         {/* 素材来源 */}
@@ -171,7 +181,7 @@ export default function Create() {
       </div>
 
       {/* 右侧结果区 */}
-      <div className="flex-1 p-6 overflow-auto bg-gray-50">
+      <div className="flex-1 p-5 md:p-6 overflow-auto bg-gray-50">
         {toast && <div className="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg z-50" onClick={() => setToast('')}>{toast}</div>}
 
         {!result && !loading && (
@@ -249,7 +259,7 @@ export default function Create() {
             <div className="flex items-center gap-2 mb-5 bg-white rounded-xl p-3 shadow-sm">
               <span className="text-sm text-gray-500 mr-1">受众切换：</span>
               {AUDIENCES.map((a) => (
-                <button key={a.value} onClick={() => handleSwitchAudience(a.value)} className={`px-3 py-1.5 text-sm rounded-lg transition ${result.audience === a.value ? 'bg-primary-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                <button key={a.value} onClick={() => handleSwitchAudience(a.value)} disabled={loading} className={`px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 ${result.audience === a.value ? 'bg-primary-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                   {a.label}
                 </button>
               ))}

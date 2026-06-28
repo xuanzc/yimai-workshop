@@ -71,7 +71,7 @@ export default function MaterialLib() {
       {items.length === 0 ? (
         <div className="bg-white rounded-xl p-12 text-center text-gray-400">暂无素材，点击"新建素材"添加</div>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item) => (
             <div key={item.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition group">
               <div className="relative h-32 overflow-hidden">
@@ -85,7 +85,7 @@ export default function MaterialLib() {
                 <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">{truncate(item.content, 80)}</p>
                 <div className="text-xs text-gray-400 mb-3">{formatDate(item.created_at)}</div>
                 <div className="flex gap-2">
-                  <button onClick={() => navigate('/create')} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs bg-primary-50 text-primary-600 rounded hover:bg-primary-100 transition"><Sparkles size={12} /> 创作</button>
+                  <button onClick={() => navigate(`/create?materialId=${item.id}`)} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs bg-primary-50 text-primary-600 rounded hover:bg-primary-100 transition"><Sparkles size={12} /> 创作</button>
                   <button onClick={() => handleEdit(item)} className="p-1.5 text-gray-400 hover:text-primary-600 transition"><Pencil size={14} /></button>
                   <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition"><Trash2 size={14} /></button>
                 </div>

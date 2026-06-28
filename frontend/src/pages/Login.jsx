@@ -1,5 +1,5 @@
 // frontend/src/pages/Login.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { ensureDemoData, getDemoCredentials, isMockMode } from '../services/mockBackend';
@@ -14,8 +14,10 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 确保 demo 数据已初始化
-  if (isMockMode()) ensureDemoData();
+  // 确保 demo 数据已初始化（移入 useEffect 避免渲染期副作用）
+  useEffect(() => {
+    if (isMockMode()) ensureDemoData();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
