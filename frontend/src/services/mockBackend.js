@@ -522,6 +522,122 @@ async function handleRequest(method, path, body, params) {
   return error(404, `Mock: 未匹配到路由 ${method} ${path}`);
 }
 
+// ============ 演示账号与样例数据 ============
+const DEMO_USER = {
+  username: 'demo',
+  email: 'demo@yimai.workshop',
+  password: 'demo123',
+};
+
+const SAMPLE_MATERIALS = [
+  {
+    title: '《天工开物·陶埏》片段',
+    material_type: 'ancient_book',
+    content: '宋子曰：水火既济而土合。成器天下之前，始于炊爨之所需。大垔之未陶也，有虞氏之尚瓦棺也，夏后氏之垔周也。陶成雅器，有素肌玉骨之象焉。掩映几筵，文明可掬。岂固糠秕而已哉？凡陶之家，以茅苫前门，不得有窗棂。盖陶家忌明暗，茅屋取其气不散也。掘地深二尺，取细土和泥，蹂践使柔韧。过筛去其粗砾，渍水经宿，乃可制器。其器大小不等，大者缸瓮，小者碗碟。轮车既转，两手掬泥置于车盘之上，拇指中指插入，随转随开，遂成碗形。稍干修削，入窑烧之。柴薪累叠，火候足则止。',
+  },
+  {
+    title: '景德镇手工制瓷七十二道工序',
+    material_type: 'craft_text',
+    content: '景德镇手工制瓷工艺始载于宋代，至明清趋于鼎盛，完整工序多达七十二道，概括为：\n\n一、练泥：取高岭土与瓷石，经粉碎、淘洗、沉淀、揉练，使泥料柔韧均匀，无气孔气泡。\n\n二、拉坯：将泥团置于辘轳车盘中央，双手随轮旋转，以拇指开孔，手指挤压成形，制成碗、瓶、盘等坯体初形。\n\n三、印坯：对不规则器形，以刻有纹样的模具印压泥片，合模成形。\n\n四、晒坯：将坯体置于晾坯架上，阴干至适当硬度，防止变形开裂。\n\n五、修坯：以铁刀旋削坯体内外，使其厚薄均匀、表面光洁，修去余泥。\n\n六、画坯：用青花料或釉里红在素坯上描绘纹饰，线条流畅、构图讲究。\n\n七、施釉：将坯体浸入釉浆，或浇釉、吹釉，使表面均匀覆盖一层釉料。\n\n八、烧窑：装入匣钵，入窑码放，以松柴为燃料，升温至一千三百度，经二十余小时烧成。\n\n九、开窑：冷却后开窑取出，拣选合格成品。次品可复烧或另作他用。\n\n每一步皆需匠人凭经验判断火候、厚薄、釉色，代代口传心授，方得"白如玉、明如镜、薄如纸、声如磬"之景德镇瓷。',
+  },
+  {
+    title: '皮影戏传承人口述记录',
+    material_type: 'oral_record',
+    content: `【受访人：王师傅，陕西华县皮影戏省级传承人，从艺四十五年】\n\n"我这皮影啊，是跟我师父学的。我师父叫李德茂，他师父的师父，那都追溯到清朝光绪年间了。我十二岁开始学，那时候就是跟着师父走村串乡，晚上搭个幕布，点上汽灯，就开始唱了。\n\n皮影的皮子，必须用上好的牛皮，泡水、刮薄、晾干，一张皮子处理下来得半个月。刻的时候用三十多把刻刀，最小的刀比绣花针还细。一个人物头茬，光刻就得三天。刻完再上色，红、绿、黑、黄，用的都是矿物颜料，几十年不褪色。\n\n唱腔是老腔，跟秦腔不一样，我们叫碗碗腔，因为敲的那个碗碗，叮叮当当的。一台戏四个人，签手、前声、上档、下档，四个人撑一台戏，所以叫四股弦。\n\n现在最大的难处是没人学。年轻人都出去打工了，学这个挣不了钱。我带了三个徒弟，两个转行了，就剩一个还在坚持。我就怕这手艺断在我手里，那对不起师父，也对不起祖宗传下来的东西。"`,
+  },
+  {
+    title: '蓝印花布工艺关键词',
+    material_type: 'craft_keyword',
+    content: '蓝印花布、刻板、刮浆、染色、晾晒、靛蓝、防染、黄豆浆、桐油纸、漏印、冰裂纹、青白对比、民间印染、南通、染坊、镂空花版、蓝草、发酵染缸、氧化还原、传统纹样、吉祥图案、凤戏牡丹、麒麟送子、鲤鱼跳龙门',
+  },
+];
+
+// 为样例素材生成样例创作
+function buildSampleCreation(material, scenario, audience) {
+  const rawContent = mockContent(scenario, material.content);
+  const contentItems = parseContentItems(rawContent, scenario);
+  const craftGraph = mockCraftGraph();
+  const ts = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString();
+  return {
+    id: genId(),
+    user_id: null, // 稍后设置
+    material_id: material.id,
+    title: `${material.title}——${SCENARIO_TITLES[scenario]}`,
+    scenario,
+    audience,
+    status: 'completed',
+    model_used: 'mock:demo',
+    content_items: contentItems,
+    craft_graph: craftGraph,
+    created_at: ts,
+  };
+}
+
+export function ensureDemoData() {
+  // 只在 Mock 模式下生效
+  if (!isMockMode()) return;
+
+  // 检查是否已初始化
+  if (localStorage.getItem('ym_demo_seeded') === 'true') {
+    // 确保 demo 用户存在
+    const users = DB.getUsers();
+    if (!users.find((u) => u.username === DEMO_USER.username)) {
+      seedDemo();
+    }
+    return;
+  }
+  seedDemo();
+}
+
+function seedDemo() {
+  // 创建 demo 用户
+  const users = DB.getUsers();
+  const demoUser = {
+    id: genId(),
+    username: DEMO_USER.username,
+    email: DEMO_USER.email,
+    password: DEMO_USER.password,
+    avatar: null,
+    role: 'user',
+    is_active: true,
+    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  };
+  users.push(demoUser);
+  DB.setUsers(users);
+
+  // 创建样例素材
+  const materials = DB.getMaterials();
+  const sampleMats = SAMPLE_MATERIALS.map((m, i) => ({
+    ...m,
+    id: genId() + i,
+    user_id: demoUser.id,
+    metadata_json: null,
+    created_at: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toISOString(),
+  }));
+  DB.setMaterials([...materials, ...sampleMats]);
+
+  // 创建样例创作（3条，覆盖不同场景）
+  const creations = DB.getCreations();
+  const sampleCreations = [
+    buildSampleCreation(sampleMats[0], 'classroom', 'child'),
+    buildSampleCreation(sampleMats[1], 'video', 'adult'),
+    buildSampleCreation(sampleMats[2], 'exhibition', 'teenager'),
+  ];
+  sampleCreations.forEach((c, i) => {
+    c.user_id = demoUser.id;
+    c.created_at = new Date(Date.now() - (3 - i) * 24 * 60 * 60 * 1000).toISOString();
+  });
+  DB.setCreations([...creations, ...sampleCreations]);
+
+  localStorage.setItem('ym_demo_seeded', 'true');
+}
+
+export function getDemoCredentials() {
+  return { account: DEMO_USER.username, password: DEMO_USER.password };
+}
+
 // ============ 导出 ============
 export const isMockMode = () => {
   // GitHub Pages 或非 localhost 环境使用 Mock 模式

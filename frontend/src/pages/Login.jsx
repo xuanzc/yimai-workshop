@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { ensureDemoData, getDemoCredentials, isMockMode } from '../services/mockBackend';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,6 +21,21 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err) {
       setError(err.detail || err.message || '登录失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      ensureDemoData();
+      const cred = getDemoCredentials();
+      await login(cred.account, cred.password);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.detail || err.message || '演示登录失败');
     } finally {
       setLoading(false);
     }
@@ -64,6 +80,18 @@ export default function Login() {
             {loading ? '登录中...' : '登 录'}
           </button>
         </form>
+        {isMockMode() && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <button
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="w-full bg-orange-50 text-orange-600 border border-orange-200 py-2.5 rounded-lg hover:bg-orange-100 transition disabled:opacity-50 text-sm font-medium"
+            >
+              体验演示账号（已含样例素材）
+            </button>
+            <p className="text-xs text-gray-400 text-center mt-2">演示账号：demo / demo123</p>
+          </div>
+        )}
         <p className="text-center text-sm text-gray-500 mt-6">
           还没有账号？<Link to="/register" className="text-primary-600 hover:underline">立即注册</Link>
         </p>

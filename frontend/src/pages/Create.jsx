@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react';
 import { creationApi } from '../services/creation';
 import { materialApi } from '../services/material';
-import { MATERIAL_TYPES, SCENARIOS, AUDIENCES, AUDIENCE_LABELS } from '../utils/constants';
+import { MATERIAL_TYPES, SCENARIOS, AUDIENCES, AUDIENCE_LABELS, SAMPLE_MATERIAL_PRESETS } from '../utils/constants';
 import { copyToClipboard, downloadMarkdown } from '../utils/helpers';
 import MarkdownView from '../components/CreationResult/MarkdownView';
 import CraftGraph from '../components/CraftGraph/CraftGraph';
-import { Sparkles, Copy, Download, Loader2 } from 'lucide-react';
+import { Sparkles, Copy, Download, Loader2, Wand2 } from 'lucide-react';
 
 export default function Create() {
   const [materials, setMaterials] = useState([]);
@@ -118,6 +118,24 @@ export default function Create() {
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">素材内容</label>
               <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={6} placeholder="粘贴古籍原文、工艺描述、口述记录或关键词..." className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none" />
+              <div className="mt-2">
+                <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1"><Wand2 size={12} /> 快速填入示例素材：</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {SAMPLE_MATERIAL_PRESETS.map((preset, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setTitle(preset.title);
+                        setMaterialType(preset.material_type);
+                        setContent(preset.content);
+                      }}
+                      className="text-xs px-2.5 py-1 bg-primary-50 text-primary-600 rounded-md hover:bg-primary-100 border border-primary-100"
+                    >
+                      {MATERIAL_TYPES.find((t) => t.value === preset.material_type)?.icon} {preset.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </>
         )}
