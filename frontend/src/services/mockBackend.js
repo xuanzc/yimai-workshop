@@ -662,20 +662,46 @@ function buildSampleCreation(material, scenario, audience) {
   };
 }
 
+// 种子数据版本号——每次更新种子内容时递增，触发自动清理旧数据
+const SEED_VERSION = '4creations_v1';
+
 export function ensureDemoData() {
   // 只在 Mock 模式下生效
   if (!isMockMode()) return;
 
-  // 检查是否已初始化
-  if (localStorage.getItem('ym_demo_seeded') === 'true') {
-    // 确保 demo 用户存在
-    const users = DB.getUsers();
-    if (!users.find((u) => u.username === DEMO_USER.username)) {
-      seedDemo();
+  const seededVersion = localStorage.getItem('ym_demo_seeded');
+
+  // 版本号变化或未初始化时，清理旧数据并重新种子
+  if (seededVersion !== SEED_VERSION) {
+    // 清理旧数据（保留用户自己注册的非 demo 账号）
+    const allUsers = DB.getUsers();
+    const nonDemoUsers = allUsers.filter((u) => u.username !== DEMO_USER.username);
+
+    // 如果有非 demo 用户，保留它们及其数据
+    if (nonDemoUsers.length > 0) {
+      const nonDemoIds = new Set(nonDemoUsers.map((u) => u.id));
+      const keepMaterials = DB.getMaterials().filter((m) => nonDemoIds.has(m.user_id));
+      const keepCreations = DB.getCreations().filter((c) => nonDemoIds.has(c.user_id));
+      DB.setUsers(nonDemoUsers);
+      DB.setMaterials(keepMaterials);
+      DB.setCreations(keepCreations);
+    } else {
+      // 没有其他用户，全部清空
+      DB.setUsers([]);
+      DB.setMaterials([]);
+      DB.setCreations([]);
     }
+
+    seedDemo();
+    localStorage.setItem('ym_demo_seeded', SEED_VERSION);
     return;
   }
-  seedDemo();
+
+  // 版本一致，确保 demo 用户存在
+  const users = DB.getUsers();
+  if (!users.find((u) => u.username === DEMO_USER.username)) {
+    seedDemo();
+  }
 }
 
 function seedDemo() {
