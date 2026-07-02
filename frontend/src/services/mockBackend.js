@@ -260,20 +260,20 @@ function mockCraftGraph(materialType, content) {
       ],
     },
     craft_keyword: {
-      // 关键词类素材（如蓝印花布/苏绣）
+      // 关键词类素材（蓝印花布/印染）
       nodes: [
-        { node_id: 'step1', label: '选材备料', node_type: 'material', description: '选取蚕丝线/棉布底料/矿物染料等原材料', sort_order: 0 },
-        { node_id: 'step2', label: '勾稿上绷', node_type: 'action', description: '设计图案勾稿，将底料上绷固定', sort_order: 1 },
-        { node_id: 'step3', label: '核心工艺', node_type: 'action', description: '按传统技法进行刺绣/印染等核心制作', sort_order: 2 },
-        { node_id: 'step4', label: '精细修整', node_type: 'action', description: '劈丝配色、分水勾线，精细打磨细节', sort_order: 3 },
-        { node_id: 'step5', label: '落绷装裱', node_type: 'action', description: '完成制作后落绷，装裱成装饰画或团扇', sort_order: 4 },
-        { node_id: 'step6', label: '成品检验', node_type: 'product', description: '质量检验，光感丝理达标即为成品', sort_order: 5 },
+        { node_id: 'step1', label: '选料制版', node_type: 'material', description: '选取棉布底料，桐油纸刻制镂空花版', sort_order: 0 },
+        { node_id: 'step2', label: '刮浆防染', node_type: 'action', description: '黄豆浆与石灰调和，刮涂于花版覆盖处', sort_order: 1 },
+        { node_id: 'step3', label: '染色晾晒', node_type: 'action', description: '入靛蓝发酵染缸反复浸染，氧化还原显色', sort_order: 2 },
+        { node_id: 'step4', label: '褪浆显花', node_type: 'action', description: '刮去防染浆层，露出青白对比纹样', sort_order: 3 },
+        { node_id: 'step5', label: '清洗晾干', node_type: 'action', description: '清水漂洗浮色，悬挂晾干至色泽稳定', sort_order: 4 },
+        { node_id: 'step6', label: '成品整理', node_type: 'product', description: '裁剪缝制，冰裂纹与吉祥图案成品布', sort_order: 5 },
       ],
       edges: [
         { source_node: 'step1', target_node: 'step2', label: '经准备' },
-        { source_node: 'step2', target_node: 'step3', label: '入制作' },
-        { source_node: 'step3', target_node: 'step4', label: '转修整' },
-        { source_node: 'step4', target_node: 'step5', label: '入装裱' },
+        { source_node: 'step2', target_node: 'step3', label: '入染缸' },
+        { source_node: 'step3', target_node: 'step4', label: '褪防染' },
+        { source_node: 'step4', target_node: 'step5', label: '经清洗' },
         { source_node: 'step5', target_node: 'step6', label: '出成品' },
       ],
     },
@@ -707,16 +707,17 @@ function seedDemo() {
   }));
   DB.setMaterials([...materials, ...sampleMats]);
 
-  // 创建样例创作（3条，覆盖不同场景）
+  // 创建样例创作（4条，每个素材1条，覆盖4种场景）
   const creations = DB.getCreations();
   const sampleCreations = [
     buildSampleCreation(sampleMats[0], 'classroom', 'child'),
-    buildSampleCreation(sampleMats[1], 'video', 'adult'),
-    buildSampleCreation(sampleMats[2], 'exhibition', 'teenager'),
+    buildSampleCreation(sampleMats[1], 'exhibition', 'adult'),
+    buildSampleCreation(sampleMats[2], 'video', 'teenager'),
+    buildSampleCreation(sampleMats[3], 'study_tour', 'expert'),
   ];
   sampleCreations.forEach((c, i) => {
     c.user_id = demoUser.id;
-    c.created_at = new Date(Date.now() - (3 - i) * 24 * 60 * 60 * 1000).toISOString();
+    c.created_at = new Date(Date.now() - (4 - i) * 24 * 60 * 60 * 1000).toISOString();
   });
   DB.setCreations([...creations, ...sampleCreations]);
 

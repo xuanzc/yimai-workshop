@@ -229,6 +229,24 @@ class MockProvider(AIProvider):
                     {"source_node": "step6", "target_node": "step7", "label": "出成品"},
                 ],
             }
+        elif "蓝印" in prompt or "花布" in prompt or "染" in prompt or "印染" in prompt:
+            graph = {
+                "nodes": [
+                    {"node_id": "step1", "label": "选料制版", "node_type": "material", "description": "选取棉布底料，桐油纸刻制镂空花版"},
+                    {"node_id": "step2", "label": "刮浆防染", "node_type": "action", "description": "黄豆浆与石灰调和，刮涂于花版覆盖处"},
+                    {"node_id": "step3", "label": "染色晾晒", "node_type": "action", "description": "入靛蓝发酵染缸反复浸染，氧化还原显色"},
+                    {"node_id": "step4", "label": "褪浆显花", "node_type": "action", "description": "刮去防染浆层，露出青白对比纹样"},
+                    {"node_id": "step5", "label": "清洗晾干", "node_type": "action", "description": "清水漂洗浮色，悬挂晾干至色泽稳定"},
+                    {"node_id": "step6", "label": "成品整理", "node_type": "product", "description": "裁剪缝制，冰裂纹与吉祥图案成品布"},
+                ],
+                "edges": [
+                    {"source_node": "step1", "target_node": "step2", "label": "经准备"},
+                    {"source_node": "step2", "target_node": "step3", "label": "入染缸"},
+                    {"source_node": "step3", "target_node": "step4", "label": "褪防染"},
+                    {"source_node": "step4", "target_node": "step5", "label": "经清洗"},
+                    {"source_node": "step5", "target_node": "step6", "label": "出成品"},
+                ],
+            }
         elif "绣" in prompt or "针" in prompt or "丝" in prompt:
             graph = {
                 "nodes": [

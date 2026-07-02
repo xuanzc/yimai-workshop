@@ -139,12 +139,13 @@ def seed_demo_data():
             db.refresh(mat)
             created_materials.append(mat)
 
-        # 创建样例创作（3条，覆盖3种场景）
+        # 创建样例创作（4条，每个素材1条，覆盖4种场景）
         provider = MockProvider()
         sample_configs = [
             (created_materials[0], "classroom", "child"),
             (created_materials[1], "exhibition", "adult"),
             (created_materials[2], "video", "teenager"),
+            (created_materials[3], "study_tour", "expert"),
         ]
 
         for mat, scenario, audience in sample_configs:
