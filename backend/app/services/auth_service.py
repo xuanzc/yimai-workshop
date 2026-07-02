@@ -25,7 +25,14 @@ def register_user(db: Session, username: str, email: str, password: str) -> dict
     db.commit()
     db.refresh(user)
     token = create_access_token(data={"sub": str(user.id)})
-    return {"id": user.id, "username": user.username, "email": user.email, "token": token}
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "avatar": user.avatar,
+        "token": token,
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    }
 
 def authenticate_user(db: Session, account: str, password: str) -> dict:
     user = get_user_by_username(db, account) or get_user_by_email(db, account)

@@ -19,6 +19,13 @@ export const useAuthStore = create((set) => ({
     const res = await authApi.register({ username, email, password });
     localStorage.setItem('token', res.data.token);
     set({ user: res.data, token: res.data.token, isAuthenticated: true });
+    // 注册后获取完整用户信息（含 role、created_at 等字段）
+    try {
+      const me = await authApi.getMe();
+      set({ user: me.data });
+    } catch {
+      // 忽略，已设置基本用户信息
+    }
     return res;
   },
 

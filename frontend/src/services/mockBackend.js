@@ -324,7 +324,14 @@ async function handleRequest(method, path, body, params) {
     users.push(user);
     DB.setUsers(users);
     const token = genToken(user.id);
-    return success({ id: user.id, username: user.username, email: user.email, token }, '注册成功');
+    return success({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar,
+      token,
+      expires_in: 86400,
+    }, '注册成功');
   }
 
   if (method === 'POST' && path === '/auth/login') {

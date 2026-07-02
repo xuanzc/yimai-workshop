@@ -4,17 +4,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { ensureDemoData, getDemoCredentials, isMockMode } from '../services/mockBackend';
 
+const DEMO_ACCOUNT = 'demo';
+const DEMO_PASSWORD = 'demo123';
+
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
-  // Mock 模式下默认填充演示账号，真实后端模式留空
-  const demoCred = isMockMode() ? getDemoCredentials() : { account: '', password: '' };
-  const [account, setAccount] = useState(demoCred.account);
-  const [password, setPassword] = useState(demoCred.password);
+  const [account, setAccount] = useState(DEMO_ACCOUNT);
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 确保 demo 数据已初始化（移入 useEffect 避免渲染期副作用）
+  // 确保演示数据已初始化
   useEffect(() => {
     if (isMockMode()) ensureDemoData();
   }, []);
@@ -36,9 +37,10 @@ export default function Login() {
   const handleDemoLogin = async () => {
     setError('');
     setLoading(true);
+    // 确保 mock 数据已初始化
+    if (isMockMode()) ensureDemoData();
     try {
-      ensureDemoData();
-      const cred = getDemoCredentials();
+      const cred = isMockMode() ? getDemoCredentials() : { account: DEMO_ACCOUNT, password: DEMO_PASSWORD };
       await login(cred.account, cred.password);
       navigate('/dashboard');
     } catch (err) {
@@ -87,18 +89,17 @@ export default function Login() {
             {loading ? '登录中...' : '登 录'}
           </button>
         </form>
-        {isMockMode() && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <button
-              onClick={handleDemoLogin}
-              disabled={loading}
-              className="w-full bg-orange-50 text-orange-600 border border-orange-200 py-2.5 rounded-lg hover:bg-orange-100 transition disabled:opacity-50 text-sm font-medium"
-            >
-              体验演示账号（已含样例素材）
-            </button>
-            <p className="text-xs text-gray-400 text-center mt-2">演示账号：demo / demo123</p>
-          </div>
-        )}
+        {/* 演示账号快捷入口（所有模式均显示） */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <button
+            onClick={handleDemoLogin}
+            disabled={loading}
+            className="w-full bg-orange-50 text-orange-600 border border-orange-200 py-2.5 rounded-lg hover:bg-orange-100 transition disabled:opacity-50 text-sm font-medium"
+          >
+            体验演示账号（已含样例素材）
+          </button>
+          <p className="text-xs text-gray-400 text-center mt-2">演示账号：demo / demo123</p>
+        </div>
         <p className="text-center text-sm text-gray-500 mt-6">
           还没有账号？<Link to="/register" className="text-primary-600 hover:underline">立即注册</Link>
         </p>
