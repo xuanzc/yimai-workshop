@@ -45,6 +45,7 @@ class CraftNode(Base):
     description = Column(Text, nullable=True)
     node_type = Column(String(30), nullable=False)
     sort_order = Column(Integer, default=0)
+    image_url = Column(String(500), nullable=True)
 
     creation = relationship("Creation", back_populates="craft_nodes")
 

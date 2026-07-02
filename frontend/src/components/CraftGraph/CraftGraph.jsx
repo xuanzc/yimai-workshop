@@ -4,15 +4,15 @@ import { CRAFT_NODE_STYLES } from '../../utils/constants';
 
 /**
  * 工艺流程图谱 — SVG 可视化渲染
- * 节点 = 圆角矩形卡片（按类型着色），边 = 贝塞尔曲线 + 箭头
+ * 节点 = 圆角矩形卡片（按类型着色）+ AI 自动生图，边 = 贝塞尔曲线 + 箭头
  * 蛇形布局：每行最多3个节点，行间用弯折线连接
+ * 图片由 Pollinations.ai 免费生图服务自动生成
  */
 export default function CraftGraph({ nodes = [], edges = [] }) {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
   const [hoveredNode, setHoveredNode] = useState(null);
 
-  // 监听容器宽度变化（响应式）
   useEffect(() => {
     if (!containerRef.current) return;
     const ro = new ResizeObserver((entries) => {
@@ -36,17 +36,18 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
   const nodeMap = {};
   orderedNodes.forEach((n) => { nodeMap[n.node_id] = n; });
 
-  // 节点卡片尺寸
   const isNarrow = containerWidth < 480;
-  const NODE_W = isNarrow ? 130 : 180;
-  const NODE_H = isNarrow ? 80 : 100;
+  const NODE_W = isNarrow ? 135 : 180;
+  const NODE_H = isNarrow ? 110 : 130;
+  const IMG_R = isNarrow ? 16 : 22;       // 图片圆形半径
+  const IMG_CX = isNarrow ? NODE_W / 2 : NODE_W / 2;
+  const IMG_CY = isNarrow ? 48 : 52;
   const GAP_X = isNarrow ? 20 : 40;
-  const GAP_Y = 50;
+  const GAP_Y = 55;
   const PER_ROW = isNarrow ? 2 : 3;
   const PAD_X = 20;
   const PAD_TOP = 10;
 
-  // 计算每个节点位置（蛇形布局）
   const positions = {};
   const rows = [];
   for (let i = 0; i < orderedNodes.length; i += PER_ROW) {
@@ -63,7 +64,6 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
     });
   });
 
-  // SVG 画布尺寸
   const totalRows = rows.length;
   const svgWidth = PAD_X * 2 + PER_ROW * NODE_W + (PER_ROW - 1) * GAP_X;
   const svgHeight = PAD_TOP + totalRows * NODE_H + (totalRows - 1) * GAP_Y + 20;
@@ -74,11 +74,9 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
     const tgt = positions[edge.target_node];
     if (!src || !tgt) return null;
 
-    // 判断是同行还是跨行
     const sameRow = src.row === tgt.row;
 
     if (sameRow) {
-      // 同行：水平直线 + 箭头
       const srcIsLeft = src.x < tgt.x;
       const x1 = srcIsLeft ? src.x + NODE_W : src.x;
       const x2 = srcIsLeft ? tgt.x : tgt.x + NODE_W;
@@ -87,12 +85,10 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
       const midX = (x1 + x2) / 2;
       return { d: `M ${x1} ${y1} L ${x2 - 8} ${y2}`, type: 'straight', midX, midY: y1 };
     } else {
-      // 跨行：弯折路径（从源节点底部 → 下行 → 到目标节点顶部）
       const x1 = src.x + NODE_W / 2;
       const y1 = src.y + NODE_H;
       const x2 = tgt.x + NODE_W / 2;
       const y2 = tgt.y;
-      // 使用 C 曲线
       const cy = (y1 + y2) / 2;
       return { d: `M ${x1} ${y1} C ${x1} ${cy}, ${x2} ${cy}, ${x2} ${y2 - 8}`, type: 'curve', midX: (x1 + x2) / 2, midY: cy };
     }
@@ -100,7 +96,6 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
 
   // ---- 节点颜色获取 ----
   function getNodeTypeColors(nodeType) {
-    const style = CRAFT_NODE_STYLES[nodeType] || CRAFT_NODE_STYLES.action;
     const colorMap = {
       material: { fill: '#eff6ff', stroke: '#60a5fa', text: '#1d4ed8', badge: '#3b82f6' },
       action: { fill: '#fffbeb', stroke: '#fbbf24', text: '#b45309', badge: '#f59e0b' },
@@ -136,7 +131,6 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
           className="mx-auto"
           style={{ minWidth: svgWidth }}
         >
-          {/* defs: 箭头标记 */}
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
               <polygon points="0 0, 10 4, 0 8" fill="#94a3b8" />
@@ -157,16 +151,26 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
               <stop offset="0%" stopColor="#d1fae5" />
               <stop offset="100%" stopColor="#ecfdf5" />
             </linearGradient>
+            {/* 图片占位渐变 */}
+            <linearGradient id="img-placeholder" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#e2e8f0" />
+              <stop offset="100%" stopColor="#cbd5e1" />
+            </linearGradient>
+            {/* 圆形裁剪路径 */}
+            {orderedNodes.map((node) => (
+              <clipPath key={`clip-${node.node_id}`} id={`clip-${node.node_id}`}>
+                <circle cx={IMG_CX} cy={IMG_CY} r={IMG_R} />
+              </clipPath>
+            ))}
           </defs>
 
-          {/* 绘制边（连接线） */}
+          {/* 绘制边 */}
           {edges.map((edge, i) => {
             const path = getEdgePath(edge);
             if (!path) return null;
             const isHovered = hoveredNode === edge.source_node || hoveredNode === edge.target_node;
             return (
               <g key={`edge-${i}`}>
-                {/* 边路径 */}
                 <path
                   d={path.d}
                   fill="none"
@@ -176,7 +180,6 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                   markerEnd={`url(#${isHovered ? 'arrowhead-hover' : 'arrowhead'})`}
                   className="transition-all"
                 />
-                {/* 边标签 */}
                 {edge.label && (
                   <g>
                     <rect
@@ -212,8 +215,8 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
             const style = CRAFT_NODE_STYLES[node.node_type] || CRAFT_NODE_STYLES.action;
             const gradId = `grad-${node.node_type}`;
             const isHovered = hoveredNode === node.node_id;
+            const hasImage = !!node.image_url;
 
-            // 文本截断
             const maxChars = isNarrow ? 6 : 8;
             const label = node.label.length > maxChars ? node.label.slice(0, maxChars) + '…' : node.label;
 
@@ -241,6 +244,49 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                   strokeWidth={isHovered ? 2.5 : 2}
                   className="transition-all"
                 />
+
+                {/* AI 生图区域 */}
+                {hasImage ? (
+                  <>
+                    {/* 占位圆（始终在图片下方，图片加载后自然覆盖） */}
+                    <circle cx={IMG_CX} cy={IMG_CY} r={IMG_R} fill="url(#img-placeholder)">
+                      <animate attributeName="opacity" values="0.4;0.7;0.4" dur="1.5s" repeatCount="indefinite" />
+                    </circle>
+                    {/* 使用 foreignObject 嵌入 HTML img，确保跨域图片可靠加载 */}
+                    <foreignObject
+                      x={IMG_CX - IMG_R}
+                      y={IMG_CY - IMG_R}
+                      width={IMG_R * 2}
+                      height={IMG_R * 2}
+                      clipPath={`url(#clip-${node.node_id})`}
+                    >
+                      <img
+                        src={node.image_url}
+                        alt={node.label}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '50%',
+                          display: 'block',
+                        }}
+                        loading="lazy"
+                      />
+                    </foreignObject>
+                    {/* 图片边框圆 */}
+                    <circle
+                      cx={IMG_CX} cy={IMG_CY} r={IMG_R}
+                      fill="none"
+                      stroke={c.stroke}
+                      strokeWidth={2}
+                      opacity={0.6}
+                    />
+                  </>
+                ) : (
+                  /* 无图片时的占位图标 */
+                  <circle cx={IMG_CX} cy={IMG_CY} r={IMG_R} fill="url(#img-placeholder)" />
+                )}
+
                 {/* 步骤序号圆 */}
                 <circle
                   cx={18} cy={18}
@@ -269,7 +315,7 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                 </text>
                 {/* 节点名称 */}
                 <text
-                  x={NODE_W / 2} y={isNarrow ? 48 : 52}
+                  x={NODE_W / 2} y={isNarrow ? 82 : 92}
                   textAnchor="middle"
                   fontSize={isNarrow ? 12 : 14}
                   fontWeight="bold"
@@ -280,7 +326,7 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                 {/* 描述（仅宽屏显示） */}
                 {!isNarrow && node.description && (
                   <text
-                    x={NODE_W / 2} y={72}
+                    x={NODE_W / 2} y={108}
                     textAnchor="middle"
                     fontSize={9}
                     fill="#94a3b8"
@@ -289,7 +335,7 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                   </text>
                 )}
 
-                {/* hover 时显示完整描述的 tooltip */}
+                {/* hover tooltip */}
                 {isHovered && node.description && (
                   <g transform={`translate(0, ${NODE_H + 4})`}>
                     <rect
@@ -312,28 +358,63 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
         </svg>
       </div>
 
-      {/* 节点详情列表（辅助阅读） */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {/* 节点详情列表（带图片缩略图） */}
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {orderedNodes.map((node, idx) => {
           const c = getNodeTypeColors(node.node_type);
           const style = CRAFT_NODE_STYLES[node.node_type] || CRAFT_NODE_STYLES.action;
           return (
             <div
               key={node.node_id}
-              className={`flex items-start gap-2 p-2 rounded-lg transition-all cursor-default ${hoveredNode === node.node_id ? 'ring-2 ring-indigo-300' : ''}`}
+              className={`flex items-start gap-3 p-3 rounded-lg transition-all cursor-default ${hoveredNode === node.node_id ? 'ring-2 ring-indigo-300 shadow-sm' : ''}`}
               style={{ backgroundColor: c.fill }}
               onMouseEnter={() => setHoveredNode(node.node_id)}
               onMouseLeave={() => setHoveredNode(null)}
             >
-              <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: c.badge }}>
-                {idx + 1}
+              {/* 图片缩略图 */}
+              <div className="flex-shrink-0 relative">
+                <div
+                  className="w-12 h-12 rounded-full overflow-hidden border-2 flex items-center justify-center text-white text-sm font-bold"
+                  style={{ backgroundColor: c.badge, borderColor: c.stroke }}
+                >
+                  {node.image_url ? (
+                    <img
+                      src={node.image_url}
+                      alt={node.label}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    idx + 1
+                  )}
+                </div>
               </div>
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-gray-800">{style.icon} {node.label}</div>
+              {/* 文字内容 */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-gray-800">{style.icon} {node.label}</span>
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                    style={{ backgroundColor: c.badge, color: 'white' }}
+                  >
+                    {style.label}
+                  </span>
+                </div>
                 {node.description && (
-                  <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{node.description}</div>
+                  <div className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">{node.description}</div>
                 )}
               </div>
+              {/* AI 生图标识 */}
+              {node.image_url && (
+                <div className="flex-shrink-0 text-[9px] text-gray-400 flex items-center gap-0.5">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                  AI
+                </div>
+              )}
             </div>
           );
         })}

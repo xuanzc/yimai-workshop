@@ -58,6 +58,24 @@ export const CRAFT_NODE_STYLES = {
   product: { label: '成品', icon: '🟩', color: 'from-green-400 to-emerald-500', text: 'text-green-600', bg: 'bg-green-50', border: 'border-green-300' },
 };
 
+/**
+ * 生成工艺图谱节点图片 URL（使用 Pollinations.ai 免费生图服务）
+ * 无需 API key，URL 即图片，浏览器加载时自动生成
+ */
+export function generateNodeImageUrl(node, index = 0) {
+  const typeMap = {
+    material: 'traditional Chinese craft raw material',
+    action: 'traditional Chinese craft process step',
+    product: 'traditional Chinese craft finished product',
+  };
+  const typeDesc = typeMap[node.node_type] || 'traditional Chinese craft';
+  const desc = (node.description || '').slice(0, 80);
+  const prompt = `${typeDesc}: ${node.label}. ${desc}. realistic, detailed, traditional Chinese style, illustration`;
+  const encoded = encodeURIComponent(prompt);
+  const seed = (index + 1) * 42;
+  return `https://image.pollinations.ai/prompt/${encoded}?width=400&height=300&nologo=true&seed=${seed}`;
+}
+
 // 内容条目图标
 export const CONTENT_ITEM_ICONS = {
   lesson_plan: '📋',

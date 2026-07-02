@@ -23,6 +23,7 @@ class CraftNodeResponse(BaseModel):
     description: Optional[str]
     node_type: str
     sort_order: int
+    image_url: Optional[str] = None
 
 class CraftEdgeResponse(BaseModel):
     source_node: str

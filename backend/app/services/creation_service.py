@@ -66,6 +66,12 @@ async def generate_creation(db: Session, user: User, material_id: int, scenario:
         ))
 
     for idx, node in enumerate(craft_graph["nodes"]):
+        image_url = provider.generate_image_url(
+            label=node["label"],
+            description=node.get("description", ""),
+            node_type=node["node_type"],
+            seed=(idx + 1) * 42,
+        )
         db.add(CraftNode(
             creation_id=creation.id,
             node_id=node["node_id"],
@@ -73,6 +79,7 @@ async def generate_creation(db: Session, user: User, material_id: int, scenario:
             description=node.get("description"),
             node_type=node["node_type"],
             sort_order=idx,
+            image_url=image_url,
         ))
 
     for edge in craft_graph["edges"]:
@@ -132,7 +139,7 @@ def get_creation_detail(db: Session, user: User, creation_id: int) -> dict:
         "model_used": creation.model_used,
         "content_items": [{"item_type": i.item_type, "title": i.title, "content": i.content, "sort_order": i.sort_order} for i in content_items],
         "craft_graph": {
-            "nodes": [{"node_id": n.node_id, "label": n.label, "description": n.description, "node_type": n.node_type, "sort_order": n.sort_order} for n in nodes],
+            "nodes": [{"node_id": n.node_id, "label": n.label, "description": n.description, "node_type": n.node_type, "sort_order": n.sort_order, "image_url": n.image_url} for n in nodes],
             "edges": [{"source_node": e.source_node, "target_node": e.target_node, "label": e.label} for e in edges],
         },
         "created_at": creation.created_at,

@@ -179,6 +179,12 @@ def seed_demo_data():
 
             # 创建工艺图谱节点
             for idx, node in enumerate(craft_graph["nodes"]):
+                node_image_url = provider.generate_image_url(
+                    label=node["label"],
+                    description=node.get("description", ""),
+                    node_type=node["node_type"],
+                    seed=(idx + 1) * 42,
+                )
                 db.add(CraftNode(
                     creation_id=creation.id,
                     node_id=node["node_id"],
@@ -186,6 +192,7 @@ def seed_demo_data():
                     description=node.get("description"),
                     node_type=node["node_type"],
                     sort_order=idx,
+                    image_url=node_image_url,
                 ))
 
             # 创建工艺图谱边

@@ -2,6 +2,8 @@
 // 客户端 Mock 后端 - 当真实后端不可用时（如 GitHub Pages）自动启用
 // 使用 localStorage 持久化数据，模拟后端全部 API 行为
 
+import { generateNodeImageUrl } from '../utils/constants';
+
 // ============ 工具函数 ============
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -277,7 +279,13 @@ function mockCraftGraph(materialType, content) {
     },
   };
 
-  return graphs[materialType] || graphs.ancient_book;
+  const graph = graphs[materialType] || graphs.ancient_book;
+  // 为每个节点生成图片 URL
+  graph.nodes = graph.nodes.map((node, idx) => ({
+    ...node,
+    image_url: generateNodeImageUrl(node, idx),
+  }));
+  return graph;
 }
 
 function parseContentItems(raw, scenario) {
