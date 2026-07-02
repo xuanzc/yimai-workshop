@@ -1,17 +1,20 @@
 // frontend/src/components/CraftGraph/CraftGraph.jsx
-import { useRef, useState, useEffect } from 'react';
-import { CRAFT_NODE_STYLES } from '../../utils/constants';
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { CRAFT_NODE_STYLES, generateNodeImageUrl } from '../../utils/constants';
 
 /**
  * 工艺流程图谱 — SVG 可视化渲染
- * 节点 = 圆角矩形卡片（按类型着色）+ AI 自动生图，边 = 贝塞尔曲线 + 箭头
- * 蛇形布局：每行最多3个节点，行间用弯折线连接
+ * 节点 = 圆角矩形卡片（按类型着色）+ 大幅 AI 自动生图（可点击放大、可重新生图）
+ * 边 = 贝塞尔曲线 + 箭头，蛇形布局
  * 图片由 Pollinations.ai 免费生图服务自动生成
  */
 export default function CraftGraph({ nodes = [], edges = [] }) {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
   const [hoveredNode, setHoveredNode] = useState(null);
+  const [modalNode, setModalNode] = useState(null);       // 当前放大查看的节点
+  const [imageSeeds, setImageSeeds] = useState({});         // node_id -> customSeed（重新生图用）
+  const [imageLoaded, setImageLoaded] = useState({});      // node_id -> true（图片加载完成）
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -20,6 +23,24 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
     });
     ro.observe(containerRef.current);
     return () => ro.disconnect();
+  }, []);
+
+  /** 获取节点当前生效的图片 URL（考虑重新生图后的 seed） */
+  const getNodeImageUrl = useCallback((node, idx) => {
+    const customSeed = imageSeeds[node.node_id];
+    return generateNodeImageUrl(node, idx, customSeed);
+  }, [imageSeeds]);
+
+  /** 重新生图：换一个随机 seed */
+  const regenerateImage = useCallback((node) => {
+    const newSeed = Math.floor(Math.random() * 100000);
+    setImageSeeds((prev) => ({ ...prev, [node.node_id]: newSeed }));
+    setImageLoaded((prev) => ({ ...prev, [node.node_id]: false }));
+  }, []);
+
+  /** 标记图片加载完成 */
+  const handleImgLoad = useCallback((nodeId) => {
+    setImageLoaded((prev) => ({ ...prev, [nodeId]: true }));
   }, []);
 
   if (nodes.length === 0) {
@@ -33,16 +54,16 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
 
   // ---- 布局计算 ----
   const orderedNodes = [...nodes].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const nodeMap = {};
-  orderedNodes.forEach((n) => { nodeMap[n.node_id] = n; });
 
   const isNarrow = containerWidth < 480;
-  const NODE_W = isNarrow ? 135 : 180;
-  const NODE_H = isNarrow ? 110 : 130;
-  const IMG_R = isNarrow ? 16 : 22;       // 图片圆形半径
-  const IMG_CX = isNarrow ? NODE_W / 2 : NODE_W / 2;
-  const IMG_CY = isNarrow ? 48 : 52;
-  const GAP_X = isNarrow ? 20 : 40;
+  const NODE_W = isNarrow ? 160 : 200;
+  const NODE_H = isNarrow ? 165 : 185;
+  // 图片区域：占卡片上半部分，大圆角矩形
+  const IMG_W = NODE_W - 16;        // 图片宽度（左右各留 8px 边距）
+  const IMG_H = isNarrow ? 80 : 95; // 图片高度
+  const IMG_X = 8;                  // 图片左偏移
+  const IMG_Y = 28;                 // 图片顶部偏移（序号圆下方）
+  const GAP_X = isNarrow ? 16 : 36;
   const GAP_Y = 55;
   const PER_ROW = isNarrow ? 2 : 3;
   const PAD_X = 20;
@@ -156,10 +177,10 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
               <stop offset="0%" stopColor="#e2e8f0" />
               <stop offset="100%" stopColor="#cbd5e1" />
             </linearGradient>
-            {/* 圆形裁剪路径 */}
+            {/* 圆角矩形裁剪路径 */}
             {orderedNodes.map((node) => (
               <clipPath key={`clip-${node.node_id}`} id={`clip-${node.node_id}`}>
-                <circle cx={IMG_CX} cy={IMG_CY} r={IMG_R} />
+                <rect x={IMG_X} y={IMG_Y} width={IMG_W} height={IMG_H} rx={8} />
               </clipPath>
             ))}
           </defs>
@@ -216,8 +237,10 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
             const gradId = `grad-${node.node_type}`;
             const isHovered = hoveredNode === node.node_id;
             const hasImage = !!node.image_url;
+            const currentUrl = hasImage ? getNodeImageUrl(node, idx) : null;
+            const imgLoadedFlag = imageLoaded[node.node_id];
 
-            const maxChars = isNarrow ? 6 : 8;
+            const maxChars = isNarrow ? 7 : 9;
             const label = node.label.length > maxChars ? node.label.slice(0, maxChars) + '…' : node.label;
 
             return (
@@ -245,48 +268,6 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                   className="transition-all"
                 />
 
-                {/* AI 生图区域 */}
-                {hasImage ? (
-                  <>
-                    {/* 占位圆（始终在图片下方，图片加载后自然覆盖） */}
-                    <circle cx={IMG_CX} cy={IMG_CY} r={IMG_R} fill="url(#img-placeholder)">
-                      <animate attributeName="opacity" values="0.4;0.7;0.4" dur="1.5s" repeatCount="indefinite" />
-                    </circle>
-                    {/* 使用 foreignObject 嵌入 HTML img，确保跨域图片可靠加载 */}
-                    <foreignObject
-                      x={IMG_CX - IMG_R}
-                      y={IMG_CY - IMG_R}
-                      width={IMG_R * 2}
-                      height={IMG_R * 2}
-                      clipPath={`url(#clip-${node.node_id})`}
-                    >
-                      <img
-                        src={node.image_url}
-                        alt={node.label}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          borderRadius: '50%',
-                          display: 'block',
-                        }}
-                        loading="lazy"
-                      />
-                    </foreignObject>
-                    {/* 图片边框圆 */}
-                    <circle
-                      cx={IMG_CX} cy={IMG_CY} r={IMG_R}
-                      fill="none"
-                      stroke={c.stroke}
-                      strokeWidth={2}
-                      opacity={0.6}
-                    />
-                  </>
-                ) : (
-                  /* 无图片时的占位图标 */
-                  <circle cx={IMG_CX} cy={IMG_CY} r={IMG_R} fill="url(#img-placeholder)" />
-                )}
-
                 {/* 步骤序号圆 */}
                 <circle
                   cx={18} cy={18}
@@ -313,9 +294,78 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                 >
                   {style.icon} {style.label}
                 </text>
+
+                {/* AI 生图区域 — 大幅圆角矩形图片 */}
+                {hasImage ? (
+                  <>
+                    {/* 占位矩形（图片下方，加载中显示脉冲动画） */}
+                    <rect
+                      x={IMG_X} y={IMG_Y}
+                      width={IMG_W} height={IMG_H}
+                      rx={8}
+                      fill="url(#img-placeholder)"
+                    >
+                      <animate attributeName="opacity" values="0.4;0.7;0.4" dur="1.5s" repeatCount="indefinite" />
+                    </rect>
+                    {/* 使用 foreignObject 嵌入 HTML img */}
+                    <foreignObject
+                      x={IMG_X}
+                      y={IMG_Y}
+                      width={IMG_W}
+                      height={IMG_H}
+                      clipPath={`url(#clip-${node.node_id})`}
+                    >
+                      <img
+                        src={currentUrl}
+                        alt={node.label}
+                        onLoad={() => handleImgLoad(node.node_id)}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          display: 'block',
+                          cursor: 'zoom-in',
+                        }}
+                        loading="lazy"
+                        onClick={() => setModalNode({ ...node, idx, url: currentUrl })}
+                      />
+                    </foreignObject>
+                    {/* 图片边框 */}
+                    <rect
+                      x={IMG_X} y={IMG_Y}
+                      width={IMG_W} height={IMG_H}
+                      rx={8}
+                      fill="none"
+                      stroke={c.stroke}
+                      strokeWidth={1.5}
+                      opacity={0.4}
+                      pointerEvents="none"
+                    />
+                    {/* 放大图标（右上角） */}
+                    <g transform={`translate(${IMG_X + IMG_W - 22}, ${IMG_Y + 4})`} pointerEvents="none">
+                      <circle cx="8" cy="8" r="8" fill="rgba(0,0,0,0.4)" />
+                      <path
+                        d="M4 8 L12 8 M8 4 L8 12"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </g>
+                  </>
+                ) : (
+                  /* 无图片时的占位 */
+                  <rect
+                    x={IMG_X} y={IMG_Y}
+                    width={IMG_W} height={IMG_H}
+                    rx={8}
+                    fill="url(#img-placeholder)"
+                  />
+                )}
+
                 {/* 节点名称 */}
                 <text
-                  x={NODE_W / 2} y={isNarrow ? 82 : 92}
+                  x={NODE_W / 2} y={IMG_Y + IMG_H + 18}
                   textAnchor="middle"
                   fontSize={isNarrow ? 12 : 14}
                   fontWeight="bold"
@@ -326,12 +376,12 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                 {/* 描述（仅宽屏显示） */}
                 {!isNarrow && node.description && (
                   <text
-                    x={NODE_W / 2} y={108}
+                    x={NODE_W / 2} y={IMG_Y + IMG_H + 32}
                     textAnchor="middle"
                     fontSize={9}
                     fill="#94a3b8"
                   >
-                    {node.description.length > 14 ? node.description.slice(0, 14) + '…' : node.description}
+                    {node.description.length > 16 ? node.description.slice(0, 16) + '…' : node.description}
                   </text>
                 )}
 
@@ -358,37 +408,49 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
         </svg>
       </div>
 
-      {/* 节点详情列表（带图片缩略图） */}
+      {/* 节点详情列表（带大图缩略图 + 重新生图按钮） */}
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {orderedNodes.map((node, idx) => {
           const c = getNodeTypeColors(node.node_type);
           const style = CRAFT_NODE_STYLES[node.node_type] || CRAFT_NODE_STYLES.action;
+          const currentUrl = node.image_url ? getNodeImageUrl(node, idx) : null;
           return (
             <div
               key={node.node_id}
-              className={`flex items-start gap-3 p-3 rounded-lg transition-all cursor-default ${hoveredNode === node.node_id ? 'ring-2 ring-indigo-300 shadow-sm' : ''}`}
+              className={`flex items-start gap-3 p-3 rounded-lg transition-all ${hoveredNode === node.node_id ? 'ring-2 ring-indigo-300 shadow-sm' : ''}`}
               style={{ backgroundColor: c.fill }}
               onMouseEnter={() => setHoveredNode(node.node_id)}
               onMouseLeave={() => setHoveredNode(null)}
             >
-              {/* 图片缩略图 */}
-              <div className="flex-shrink-0 relative">
-                <div
-                  className="w-12 h-12 rounded-full overflow-hidden border-2 flex items-center justify-center text-white text-sm font-bold"
-                  style={{ backgroundColor: c.badge, borderColor: c.stroke }}
-                >
-                  {node.image_url ? (
+              {/* 大图缩略图（可点击放大） */}
+              <div
+                className="flex-shrink-0 relative w-20 h-16 rounded-lg overflow-hidden border-2 cursor-zoom-in group"
+                style={{ borderColor: c.stroke }}
+                onClick={() => currentUrl && setModalNode({ ...node, idx, url: currentUrl })}
+              >
+                {currentUrl ? (
+                  <>
                     <img
-                      src={node.image_url}
+                      src={currentUrl}
                       alt={node.label}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
                       loading="lazy"
                     />
-                  ) : (
-                    idx + 1
-                  )}
-                </div>
+                    {/* 放大图标 */}
+                    <div className="absolute top-0.5 right-0.5 bg-black/40 rounded-full w-5 h-5 flex items-center justify-center">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
+                      </svg>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: c.badge }}>
+                    {idx + 1}
+                  </div>
+                )}
               </div>
+
               {/* 文字内容 */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
@@ -403,22 +465,111 @@ export default function CraftGraph({ nodes = [], edges = [] }) {
                 {node.description && (
                   <div className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">{node.description}</div>
                 )}
+                {/* 重新生图按钮 */}
+                {currentUrl && (
+                  <button
+                    className="mt-1.5 inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-white/60 hover:bg-white text-gray-600 hover:text-indigo-600 border border-gray-200 transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      regenerateImage(node);
+                    }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M23 4v6h-6M1 20v-6h6" />
+                      <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                    </svg>
+                    重新生图
+                  </button>
+                )}
               </div>
-              {/* AI 生图标识 */}
-              {node.image_url && (
-                <div className="flex-shrink-0 text-[9px] text-gray-400 flex items-center gap-0.5">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <path d="M21 15l-5-5L5 21" />
-                  </svg>
-                  AI
-                </div>
-              )}
             </div>
           );
         })}
       </div>
+
+      {/* ===== 图片放大模态框 ===== */}
+      {modalNode && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setModalNode(null)}
+        >
+          <div
+            className="relative max-w-3xl w-full mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 头部 */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-full font-medium text-white"
+                  style={{ backgroundColor: getNodeTypeColors(modalNode.node_type).badge }}
+                >
+                  {(CRAFT_NODE_STYLES[modalNode.node_type] || CRAFT_NODE_STYLES.action).label}
+                </span>
+                <h3 className="text-base font-bold text-gray-800">{modalNode.label}</h3>
+              </div>
+              <button
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                onClick={() => setModalNode(null)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 大图区域 */}
+            <div className="relative bg-gray-100 flex items-center justify-center" style={{ minHeight: '300px' }}>
+              {/* 加载占位 */}
+              {!imageLoaded[`modal-${modalNode.node_id}`] && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    <div className="w-8 h-8 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
+                    <span className="text-xs">AI 生图中...</span>
+                  </div>
+                </div>
+              )}
+              <img
+                src={modalNode.url}
+                alt={modalNode.label}
+                className="w-full max-h-[60vh] object-contain"
+                onLoad={() => handleImgLoad(`modal-${modalNode.node_id}`)}
+                onError={() => handleImgLoad(`modal-${modalNode.node_id}`)}
+              />
+            </div>
+
+            {/* 底部操作栏 */}
+            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50">
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+                由 AI 自动生成
+              </p>
+              <button
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 transition-all"
+                onClick={() => {
+                  const newSeed = Math.floor(Math.random() * 100000);
+                  const newUrl = generateNodeImageUrl(modalNode, modalNode.idx, newSeed, 800, 600);
+                  setImageLoaded((prev) => ({ ...prev, [`modal-${modalNode.node_id}`]: false }));
+                  setModalNode({ ...modalNode, url: newUrl });
+                  // 同步更新列表中的 seed
+                  setImageSeeds((prev) => ({ ...prev, [modalNode.node_id]: newSeed }));
+                  setImageLoaded((prev) => ({ ...prev, [modalNode.node_id]: false }));
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M23 4v6h-6M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+                重新生图
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

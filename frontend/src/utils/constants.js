@@ -61,8 +61,13 @@ export const CRAFT_NODE_STYLES = {
 /**
  * 生成工艺图谱节点图片 URL（使用 Pollinations.ai 免费生图服务）
  * 无需 API key，URL 即图片，浏览器加载时自动生成
+ * @param {object} node  节点数据 { label, description, node_type }
+ * @param {number} index  节点序号（用于生成默认 seed）
+ * @param {number} customSeed  自定义 seed（传入则覆盖 index 计算，用于"重新生图"）
+ * @param {number} width   图片宽度
+ * @param {number} height  图片高度
  */
-export function generateNodeImageUrl(node, index = 0) {
+export function generateNodeImageUrl(node, index = 0, customSeed = null, width = 400, height = 300) {
   const typeMap = {
     material: 'traditional Chinese craft raw material',
     action: 'traditional Chinese craft process step',
@@ -72,8 +77,8 @@ export function generateNodeImageUrl(node, index = 0) {
   const desc = (node.description || '').slice(0, 80);
   const prompt = `${typeDesc}: ${node.label}. ${desc}. realistic, detailed, traditional Chinese style, illustration`;
   const encoded = encodeURIComponent(prompt);
-  const seed = (index + 1) * 42;
-  return `https://image.pollinations.ai/prompt/${encoded}?width=400&height=300&nologo=true&seed=${seed}`;
+  const seed = customSeed !== null ? customSeed : (index + 1) * 42;
+  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
 }
 
 // 内容条目图标
